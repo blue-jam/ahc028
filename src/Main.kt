@@ -1,9 +1,10 @@
 import java.util.HashMap
+import java.util.PriorityQueue
 import java.util.Random
 import java.util.TreeSet
 
 const val L = 5000
-const val TIME_LIMIT_MILLIS = 1500L
+const val TIME_LIMIT_MILLIS = 1200L
 
 fun main() {
     val random = Random(42)
@@ -12,7 +13,7 @@ fun main() {
     val A = List(N) { readln() }
     val t = List(M) { readln() }
 
-    val solver = HillClimbing(random)
+    val solver = SolverImpl(random)
     val ans = solver.solve(N, M, si, sj, A, t)
 
     val ci = System.getenv("CI")
@@ -38,18 +39,20 @@ class SolverImpl(val random: Random) : Solver {
         var S = ""
         val ts = TreeSet<String>(t)
         while (ts.isNotEmpty()) {
-            var tt = ""
+            var tts = ArrayList<String>()
             var cost = Long.MAX_VALUE
             for (s in ts) {
                 val tCost = calcCost(s, S, prev, A)
                 if (tCost < cost) {
                     cost = tCost
-                    tt = s
-                } else if (tCost == cost && random.nextBoolean()) {
+                    tts.clear()
+                    tts.add(s)
+                } else if (tCost == cost) {
                     cost = tCost
-                    tt = s
+                    tts.add(s)
                 }
             }
+            val tt = tts[random.nextInt(tts.size)]
             ts.remove(tt)
             var common = 0
             for (i in 1 until Math.min(tt.length, S.length)) {
@@ -57,23 +60,59 @@ class SolverImpl(val random: Random) : Solver {
                     common = i
                 }
             }
-            for (l in common until tt.length) {
-                var p = Pair(-1, -1)
-                var dist = Int.MAX_VALUE
-                for (i in A.indices) {
-                    for (j in A[i].indices) {
-                        if (A[i][j] == tt[l] && distance(prev, Pair(i, j)) < dist) {
-                            p = Pair(i, j)
-                            dist = distance(prev, Pair(i, j))
-                        }
-                    }
-                }
-                S += A[p.first][p.second]
-                ans.add(p)
-                prev = p
+            val subt = tt.substring(common)
+            val steps = findSteps(subt, A, prev)
+            S += tt.substring(common)
+            ans.addAll(steps)
+            if (steps.isNotEmpty()) {
+                prev = steps.last()
             }
         }
         return ans
+    }
+
+    private fun findSteps(
+        subt: String,
+        A: List<String>,
+        prev: Pair<Int, Int>
+    ): ArrayList<Pair<Int, Int>> {
+        val steps = ArrayList<Pair<Int, Int>>()
+        val INF = 1000000
+        val dist = Array(A.size) { Array(A[0].length) { Array(subt.length + 1) { INF } }}
+        val previous = Array(A.size) { Array(A[0].length) { Array(subt.length + 1) {Pair(-1, -1) } } }
+        dist[prev.first][prev.second][0] = 0
+
+        val queue = PriorityQueue<Triple<Int, Pair<Int, Int>, Int>>() { a, b -> a.first.compareTo(b.first) }
+        queue.add(Triple(0, prev, 0))
+
+        while (queue.isNotEmpty()) {
+            val (d, p, idx) = queue.poll()
+            if (d > dist[p.first][p.second][idx]) {
+                continue
+            }
+            if (idx == subt.length) {
+                var pp = p
+                for (i in idx downTo 1) {
+                    steps.add(pp)
+                    pp = previous[pp.first][pp.second][i]
+                }
+                steps.reverse()
+                return steps
+            }
+            for (i in A.indices) {
+                for (j in A[i].indices) {
+                    if (A[i][j] == subt[idx]) {
+                        val nd = d + distance(p, Pair(i, j)) + 1
+                        if (nd < dist[i][j][idx + 1]) {
+                            dist[i][j][idx + 1] = nd
+                            previous[i][j][idx + 1] = p
+                            queue.add(Triple(nd, Pair(i, j), idx + 1))
+                        }
+                    }
+                }
+            }
+        }
+        throw IllegalStateException()
     }
 
     private fun calcCost(
@@ -90,17 +129,8 @@ class SolverImpl(val random: Random) : Solver {
         }
         var tCost = 0L
         var pprev = prev
-        for (l in common until s.length) {
-            var p = Pair(-1, -1)
-            var dist = Int.MAX_VALUE
-            for (i in A.indices) {
-                for (j in A[i].indices) {
-                    if (A[i][j] == s[l] && distance(pprev, Pair(i, j)) < dist) {
-                        p = Pair(i, j)
-                        dist = distance(pprev, Pair(i, j))
-                    }
-                }
-            }
+        val steps = findSteps(s.substring(common), A, prev)
+        for (p in steps) {
             tCost += distance(pprev, p) + 1L
             pprev = p
         }
