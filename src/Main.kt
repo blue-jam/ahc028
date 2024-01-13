@@ -1,4 +1,6 @@
+import java.util.HashMap
 import java.util.Random
+import java.util.TreeSet
 
 const val L = 5000
 const val TIME_LIMIT_MILLIS = 1500L
@@ -67,7 +69,7 @@ class SolverImpl : Solver {
 
 class HillClimbing(val random: Random) : Solver {
     override fun solve(N: Int, M: Int, si: Int, sj: Int, A: List<String>, t: List<String>): List<Pair<Int, Int>> {
-        val solver = SolverImpl()
+        val solver = Greedy(random)
         var ans = solver.solve(N, M, si, sj, A, t)
         var score = Judge.calcScore(N, M, si, sj, A, t, ans)
         var u = ArrayList<String>(t)
@@ -95,7 +97,93 @@ class HillClimbing(val random: Random) : Solver {
 
         return ans
     }
+}
 
+class Greedy (val random: Random) : Solver {
+    override fun solve(N: Int, M: Int, si: Int, sj: Int, A: List<String>, t: List<String>): List<Pair<Int, Int>> {
+        val map = HashMap<Char, ArrayList<String>>()
+        for (s in t) {
+            if (!map.containsKey(s[0])) {
+                map[s[0]] = ArrayList()
+            }
+            map[s[0]]!!.add(s)
+        }
+
+        val ans = mutableListOf<Pair<Int, Int>>()
+        var prev = Pair(si, sj)
+        var S = ""
+
+        var cnt = 0
+        while (cnt < M) {
+            var tt = ""
+            if (S.isEmpty()) {
+                if (map.containsKey(A[si][sj])) {
+                    val index = random.nextInt(map[A[si][sj]]!!.size)
+                    tt = map[A[si][sj]]!![index]
+                    map[A[si][sj]]!!.removeAt(index)
+                    if (map[A[si][sj]]!!.isEmpty()) {
+                        map.remove(A[si][sj])
+                    }
+                } else {
+                    val index = random.nextInt(map.keys.size)
+                    val key = map.keys.toList()[index]
+                    val index2 = random.nextInt(map[key]!!.size)
+                    tt = map[key]!![index2]
+                    map[key]!!.removeAt(index2)
+                    if (map[key]!!.isEmpty()) {
+                        map.remove(key)
+                    }
+                }
+            } else {
+                if (map.containsKey(S.last())) {
+                    val index = random.nextInt(map[S.last()]!!.size)
+                    tt = map[S.last()]!![index]
+                    map[S.last()]!!.removeAt(index)
+                    if (map[S.last()]!!.isEmpty()) {
+                        map.remove(S.last())
+                    }
+                } else {
+                    val index = random.nextInt(map.keys.size)
+                    val key = map.keys.toList()[index]
+                    val index2 = random.nextInt(map[key]!!.size)
+                    tt = map[key]!![index2]
+                    map[key]!!.removeAt(index2)
+                    if (map[key]!!.isEmpty()) {
+                        map.remove(key)
+                    }
+                }
+            }
+
+            if (S.contains(tt)) {
+                cnt++
+                continue
+            }
+            var common = 0
+            for (i in 1 until Math.min(tt.length, S.length)) {
+                if (tt.substring(i) == S.substring(S.length - i)) {
+                    common = i
+                }
+            }
+            for (l in common until tt.length) {
+                var p = Pair(-1, -1)
+                var dist = Int.MAX_VALUE
+                for (i in A.indices) {
+                    for (j in A[i].indices) {
+                        if (A[i][j] == tt[l] && distance(prev, Pair(i, j)) < dist) {
+                            p = Pair(i, j)
+                            dist = distance(prev, Pair(i, j))
+                        }
+                    }
+                }
+                S += A[p.first][p.second]
+                ans.add(p)
+                prev = p
+            }
+            cnt++
+        }
+
+        return ans
+    }
 }
 
 class Judge {
