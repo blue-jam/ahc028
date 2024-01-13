@@ -56,7 +56,7 @@ class SolverImpl(val random: Random) : Solver {
             ts.remove(tt)
             var common = 0
             for (i in 1 until Math.min(tt.length, S.length)) {
-                if (tt.substring(i) == S.substring(S.length - i)) {
+                if (tt.substring(0, i) == S.substring(S.length - i)) {
                     common = i
                 }
             }
@@ -123,7 +123,7 @@ class SolverImpl(val random: Random) : Solver {
     ): Long {
         var common = 0
         for (i in 1 until Math.min(s.length, S.length)) {
-            if (s.substring(i) == S.substring(S.length - i)) {
+            if (s.substring(0, i) == S.substring(S.length - i)) {
                 common = i
             }
         }
