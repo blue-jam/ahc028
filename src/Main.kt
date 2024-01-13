@@ -12,7 +12,7 @@ fun main() {
     val A = List(N) { readln() }
     val t = List(M) { readln() }
 
-    val solver = HillClimbing(random)
+    val solver = SolverImpl()
     val ans = solver.solve(N, M, si, sj, A, t)
 
     val ci = System.getenv("CI")
@@ -36,11 +36,18 @@ class SolverImpl : Solver {
         val ans = mutableListOf<Pair<Int, Int>>()
         var prev = Pair(si, sj)
         var S = ""
-        for (k in t.indices) {
-            val tt = t[k]
-            if (S.contains(tt)) {
-                continue
+        val ts = TreeSet<String>(t)
+        while (ts.isNotEmpty()) {
+            var tt = ""
+            var cost = Long.MAX_VALUE
+            for (s in ts) {
+                val tCost = calcCost(s, S, prev, A)
+                if (tCost < cost) {
+                    cost = tCost
+                    tt = s
+                }
             }
+            ts.remove(tt)
             var common = 0
             for (i in 1 until Math.min(tt.length, S.length)) {
                 if (tt.substring(i) == S.substring(S.length - i)) {
@@ -64,6 +71,37 @@ class SolverImpl : Solver {
             }
         }
         return ans
+    }
+
+    private fun calcCost(
+        s: String,
+        S: String,
+        prev: Pair<Int, Int>,
+        A: List<String>
+    ): Long {
+        var common = 0
+        for (i in 1 until Math.min(s.length, S.length)) {
+            if (s.substring(i) == S.substring(S.length - i)) {
+                common = i
+            }
+        }
+        var tCost = 0L
+        var pprev = prev
+        for (l in common until s.length) {
+            var p = Pair(-1, -1)
+            var dist = Int.MAX_VALUE
+            for (i in A.indices) {
+                for (j in A[i].indices) {
+                    if (A[i][j] == s[l] && distance(pprev, Pair(i, j)) < dist) {
+                        p = Pair(i, j)
+                        dist = distance(pprev, Pair(i, j))
+                    }
+                }
+            }
+            tCost += distance(pprev, p) + 1L
+            pprev = p
+        }
+        return tCost
     }
 }
 
