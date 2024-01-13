@@ -12,7 +12,7 @@ fun main() {
     val A = List(N) { readln() }
     val t = List(M) { readln() }
 
-    val solver = SolverImpl()
+    val solver = HillClimbing(random)
     val ans = solver.solve(N, M, si, sj, A, t)
 
     val ci = System.getenv("CI")
@@ -31,7 +31,7 @@ fun distance(a: Pair<Int, Int>, b: Pair<Int, Int>): Int {
     return Math.abs(a.first - b.first) + Math.abs(a.second - b.second)
 }
 
-class SolverImpl : Solver {
+class SolverImpl(val random: Random) : Solver {
     override fun solve(N: Int, M: Int, si: Int, sj: Int, A: List<String>, t: List<String>): List<Pair<Int, Int>> {
         val ans = mutableListOf<Pair<Int, Int>>()
         var prev = Pair(si, sj)
@@ -43,6 +43,9 @@ class SolverImpl : Solver {
             for (s in ts) {
                 val tCost = calcCost(s, S, prev, A)
                 if (tCost < cost) {
+                    cost = tCost
+                    tt = s
+                } else if (tCost == cost && random.nextBoolean()) {
                     cost = tCost
                     tt = s
                 }
@@ -107,29 +110,19 @@ class SolverImpl : Solver {
 
 class HillClimbing(val random: Random) : Solver {
     override fun solve(N: Int, M: Int, si: Int, sj: Int, A: List<String>, t: List<String>): List<Pair<Int, Int>> {
-        val solver = Greedy(random)
+        val solver = SolverImpl(random)
         var ans = solver.solve(N, M, si, sj, A, t)
         var score = Judge.calcScore(N, M, si, sj, A, t, ans)
         var u = ArrayList<String>(t)
 
         val start = System.currentTimeMillis()
         while (System.currentTimeMillis() - start < TIME_LIMIT_MILLIS) {
-            val i = random.nextInt(u.size)
-            val j = random.nextInt(u.size)
-            val tmp = u[i]
-            u[i] = u[j]
-            u[j] = tmp
-
             val newAns = solver.solve(N, M, si, sj, A, u)
             val newScore = Judge.calcScore(N, M, si, sj, A, u, newAns)
             System.err.println("$newScore $score")
             if (newScore > score) {
                 ans = newAns
                 score = newScore
-            } else {
-                val tmp = u[i]
-                u[i] = u[j]
-                u[j] = tmp
             }
         }
 
