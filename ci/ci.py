@@ -7,14 +7,10 @@ os.system(compile_command)
 # Initialize sum of outputs
 total_sum = 0
 
-# Iterate through input files 0000.txt to 0099.txt
+run_command = f'seq 0 99 | xargs printf "%04d\n" | xargs -I@ -P8 sh -c "CI=true java -jar Main.jar < in/@.txt > out/@.txt"'
+os.system(run_command)
 for i in range(0, 100):
-    input_file = f"in/{i:04d}.txt"
-    output_file = f"out/t{i:04d}.txt"
-
-    # Run Kotlin program for each input file
-    run_command = f"CI=true java -jar Main.jar < {input_file} > {output_file}"
-    os.system(run_command)
+    output_file = f"out/{i:04d}.txt"
 
     # Read the output and add to the total sum
     with open(output_file, 'r') as f:
